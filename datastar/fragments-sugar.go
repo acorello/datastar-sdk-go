@@ -1,11 +1,7 @@
 package datastar
 
 import (
-	"context"
 	"fmt"
-	"io"
-
-	"github.com/valyala/bytebufferpool"
 )
 
 // ValidFragmentMergeTypes is a list of valid fragment merge modes.
@@ -108,50 +104,6 @@ func WithoutViewTransitions() MergeFragmentOption {
 // equivalent to calling `MergeFragments(fmt.Sprintf(format, args...))`.
 func (sse *ServerSentEventGenerator) MergeFragmentf(format string, args ...any) error {
 	return sse.MergeFragments(fmt.Sprintf(format, args...))
-}
-
-// TemplComponent satisfies the component rendering interface for HTML template engine [Templ].
-// This separate type ensures compatibility with [Templ] without imposing a dependency requirement
-// on those who prefer to use a different template engine.
-//
-// [Templ]: https://templ.guide/
-type TemplComponent interface {
-	Render(ctx context.Context, w io.Writer) error
-}
-
-// MergeFragmentTempl is a convenience adaptor of [sse.MergeFragments] for [TemplComponent].
-func (sse *ServerSentEventGenerator) MergeFragmentTempl(c TemplComponent, opts ...MergeFragmentOption) error {
-	buf := bytebufferpool.Get()
-	defer bytebufferpool.Put(buf)
-	if err := c.Render(sse.Context(), buf); err != nil {
-		return fmt.Errorf("failed to merge fragment: %w", err)
-	}
-	if err := sse.MergeFragments(buf.String(), opts...); err != nil {
-		return fmt.Errorf("failed to merge fragment: %w", err)
-	}
-	return nil
-}
-
-// GoStarElementRenderer satisfies the component rendering interface for HTML template engine [GoStar].
-// This separate type ensures compatibility with [GoStar] without imposing a dependency requirement
-// on those who prefer to use a different template engine.
-//
-// [GoStar]: https://github.com/delaneyj/gostar
-type GoStarElementRenderer interface {
-	Render(w io.Writer) error
-}
-
-// MergeFragmentGostar is a convenience adaptor of [sse.MergeFragments] for [GoStarElementRenderer].
-func (sse *ServerSentEventGenerator) MergeFragmentGostar(child GoStarElementRenderer, opts ...MergeFragmentOption) error {
-	buf := bytebufferpool.Get()
-	defer bytebufferpool.Put(buf)
-	if err := child.Render(buf); err != nil {
-		return fmt.Errorf("failed to render: %w", err)
-	}
-	if err := sse.MergeFragments(buf.String(), opts...); err != nil {
-		return fmt.Errorf("failed to merge fragment: %w", err)
-	}
-	return nil
 }
 
 // GetSSE is a convenience method for generating Datastar backend [get] action attribute.
